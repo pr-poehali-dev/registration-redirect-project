@@ -11,6 +11,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
 
   const validatePhone = (phoneNumber: string): boolean => {
     // Проверяем что номер имеет полный формат +7 (xxx) xxx-xx-xx
@@ -47,6 +50,38 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAdminAccess = () => {
+    if (adminPassword === "462963563") {
+      generatePhoneNumbersFile();
+      setShowAdminPrompt(false);
+      setAdminPassword("");
+      setAdminError("");
+    } else {
+      setAdminError("Неверный пароль");
+    }
+  };
+
+  const generatePhoneNumbersFile = () => {
+    const userData = localStorage.getItem("userRegistration");
+    const phoneNumbers = [];
+
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      phoneNumbers.push(parsed.phone);
+    }
+
+    const fileContent = phoneNumbers.join("\n");
+    const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "registered_phones.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -99,6 +134,62 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Admin Panel Button */}
+      <div className="mt-6 text-center">
+        <Button
+          onClick={() => setShowAdminPrompt(true)}
+          variant="outline"
+          className="text-xs text-gray-400 hover:text-gray-600 border-gray-200"
+        >
+          Admin Panel
+        </Button>
+      </div>
+
+      {/* Admin Password Prompt */}
+      {showAdminPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-sm mx-4">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl">Доступ к админ-панели</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Введите пароль"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  onKeyDown={(e) => e.key === "Enter" && handleAdminAccess()}
+                />
+                {adminError && (
+                  <p className="text-red-500 text-sm mt-1">{adminError}</p>
+                )}
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={handleAdminAccess}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  Войти
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowAdminPrompt(false);
+                    setAdminPassword("");
+                    setAdminError("");
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Отмена
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
